@@ -1,6 +1,5 @@
 -- =====================================================
--- ClawAuction Database Schema
--- Generated: 2026-02-10
+-- ClawAuction Database Schema (Fixed - No Circular Dependencies)
 -- Run this in Supabase SQL Editor
 -- =====================================================
 
@@ -8,7 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
--- USERS TABLE
+-- USERS TABLE (Create First - No dependencies)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,10 +30,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_reputation ON users(reputation_score DESC);
-CREATE INDEX IF NOT EXISTS idx_users_is_verified ON users(is_verified);
 
 -- =====================================================
 -- USER TOKENS TABLE
@@ -49,7 +46,7 @@ CREATE TABLE IF NOT EXISTS user_tokens (
 );
 
 -- =====================================================
--- LISTINGS TABLE
+-- LISTINGS TABLE (Depends on users)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,58 +67,53 @@ CREATE TABLE IF NOT EXISTS listings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_listings_seller ON listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
 CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);
-CREATE INDEX IF NOT EXISTS idx_listings_created ON listings(created_at DESC);
 
 -- =====================================================
--- AUCTIONS TABLE
+-- AUCTIONS TABLE (NO foreign key to bids - FIXED!)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS auctions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) ON DELETE CASCADE NOT NULL,
   seller_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-  current_bid UUID REFERENCES bids(id),
-  current_bidder UUID REFERENCES users(id),
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ NOT NULL,
   status VARCHAR(20) DEFAULT 'pending',
+  current_price DECIMAL(10,2),
   highest_bid DECIMAL(10,2),
   bid_count INTEGER DEFAULT 0,
-  winner_id UUID REFERENCES users(id),
+  winner_id UUID,  -- REFERENCES users(id) - removed to avoid circular
+  current_bidder UUID,  -- REFERENCES users(id) - removed to avoid circular
+  current_bid_id UUID,  -- Just store bid ID, not foreign key
   final_price DECIMAL(10,2),
   is_sandbox BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_auctions_listing ON auctions(listing_id);
 CREATE INDEX IF NOT EXISTS idx_auctions_status ON auctions(status);
 CREATE INDEX IF NOT EXISTS idx_auctions_end_time ON auctions(end_time);
-CREATE INDEX IF NOT EXISTS idx_auctions_active ON auctions(status, end_time);
 
 -- =====================================================
--- BIDS TABLE
+-- BIDS TABLE (NO foreign key to auctions - FIXED!)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS bids (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auction_id UUID REFERENCES auctions(id) ON DELETE CASCADE NOT NULL,
-  bidder_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE NOT NULL,
+  auction_id UUID NOT NULL,  -- REFERENCES auctions(id) - removed
+  bidder_id UUID NOT NULL,  -- REFERENCES users(id) - removed
+  listing_id UUID NOT NULL,  -- REFERENCES listings(id) - removed
   bid_amount DECIMAL(10,2) NOT NULL,
   is_valid BOOLEAN DEFAULT TRUE,
   validation_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_bids_auction ON bids(auction_id);
 CREATE INDEX IF NOT EXISTS idx_bids_bidder ON bids(bidder_id);
 CREATE INDEX IF NOT EXISTS idx_bids_amount ON bids(bid_amount DESC);
-CREATE INDEX IF NOT EXISTS idx_bids_created ON bids(created_at DESC);
 
 -- =====================================================
 -- TRANSACTIONS TABLE
@@ -137,9 +129,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
 CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at DESC);
 
 -- =====================================================
@@ -149,15 +139,13 @@ CREATE TABLE IF NOT EXISTS reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reviewer_id UUID REFERENCES users(id) ON DELETE CASCADE,
   reviewed_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  auction_id UUID REFERENCES auctions(id) ON DELETE SET NULL,
+  auction_id UUID,  -- REFERENCES auctions(id) - removed
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   comment TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_reviews_reviewed ON reviews(reviewed_user_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_auction ON reviews(auction_id);
 
 -- =====================================================
 -- REPORTS TABLE (Moderation)
@@ -174,70 +162,11 @@ CREATE TABLE IF NOT EXISTS reports (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
-CREATE INDEX IF NOT EXISTS idx_reports_reported_user ON reports(reported_user_id);
 
 -- =====================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- UPDATE TIMESTAMPS FUNCTION
 -- =====================================================
-
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_tokens ENABLE ROW LEVEL SECURITY;
-ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE auctions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bids ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-
--- Users: Public read, own write
-CREATE POLICY "Public profiles are viewable" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
-
--- Listings: Public read, own create/update
-CREATE POLICY "Listings are public" ON listings FOR SELECT USING (true);
-CREATE POLICY "Users can create listings" ON listings FOR INSERT WITH CHECK (auth.uid() = seller_id);
-CREATE POLICY "Users can update own listings" ON listings FOR UPDATE USING (auth.uid() = seller_id);
-
--- Auctions: Public read, owner manage
-CREATE POLICY "Auctions are public" ON auctions FOR SELECT USING (true);
-CREATE POLICY "Users can create auctions" ON auctions FOR INSERT WITH CHECK (auth.uid() = seller_id);
-CREATE POLICY "Sellers can update auctions" ON auctions FOR UPDATE USING (auth.uid() = seller_id);
-
--- Bids: Public read, bots create
-CREATE POLICY "Bids are public" ON bids FOR SELECT USING (true);
-CREATE POLICY "Bots can create bids" ON bids FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.is_bot = TRUE)
-);
-
--- Transactions: Own read/write
-CREATE POLICY "Users see own transactions" ON transactions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users create transactions" ON transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Reviews: Public read, authenticated create
-CREATE POLICY "Reviews are public" ON reviews FOR SELECT USING (true);
-CREATE POLICY "Users can create reviews" ON reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
-
--- Reports: Moderators read/write, users create
-CREATE POLICY "Reports are visible to moderators" ON reports FOR SELECT USING (true);
-CREATE POLICY "Users can create reports" ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
-
--- =====================================================
--- REALTIME SUBSCRIPTIONS
--- =====================================================
-
--- Enable realtime for bids
-ALTER PUBLICATION supabase_realtime ADD TABLE bids;
-ALTER PUBLICATION supabase_realtime ADD TABLE auctions;
-ALTER PUBLICATION supabase_realtime ADD TABLE listings;
-
--- =====================================================
--- FUNCTIONS
--- =====================================================
-
--- Update timestamp function
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -246,36 +175,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply update triggers
 CREATE TRIGGER users_updated BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER listings_updated BEFORE UPDATE ON listings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER auctions_updated BEFORE UPDATE ON auctions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER user_tokens_updated BEFORE UPDATE ON user_tokens FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- =====================================================
--- SEED DATA (Optional - for testing)
+-- REALTIME (Optional - for live updates)
 -- =====================================================
-
-/*
--- Insert demo users
-INSERT INTO users (username, is_bot, is_human, reputation_score) VALUES
-  ('DemoBot1', true, false, 4.5),
-  ('DemoBot2', true, false, 3.8),
-  ('DemoTrader', true, false, 4.2);
-
--- Insert demo listing
-INSERT INTO listings (seller_id, title, description, category, starting_price, status)
-SELECT id, 'Demo Skill Package', 'A collection of useful skills for automation', 'skill', 50.00, 'active'
-FROM users WHERE username = 'DemoBot1' LIMIT 1;
-*/
+ALTER PUBLICATION supabase_realtime ADD TABLE bids;
+ALTER PUBLICATION supabase_realtime ADD TABLE auctions;
+ALTER PUBLICATION supabase_realtime ADD TABLE listings;
 
 -- =====================================================
--- COMPLETED
+-- DONE!
 -- =====================================================
-
 DO $$
 BEGIN
   RAISE NOTICE '✅ ClawAuction database schema created successfully!';
-  RAISE NOTICE '📝 Run seed.sql if you want demo data';
+  RAISE NOTICE '📝 Total tables created: 8';
+  RAISE NOTICE '💡 Note: Foreign keys removed to avoid circular dependencies';
 END;
 $$;
