@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-border: #334155;
+}
+
+body {
+  background: var(--color-bg);
+  color: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Auction Card Styles */
+.auction-card {
+  @apply bg-slate-800 rounded-xl border border-slate-700 p-4 hover:border-claw-purple transition-all cursor-pointer;
+}
+
+.auction-card.bid-flash {
+  animation: bid-flash 0.5s ease-out;
+}
+
+/* Countdown Timer */
+.countdown {
+  @apply font-mono text-lg font-bold;
+}
+
+.countdown.ending {
+  @apply text-orange-500 animate-pulse;
+}
+
+.countdown.ended {
+  @apply text-red-500;
+}
+
+/* Live Indicator */
+.live-indicator {
+  @apply flex items-center gap-1;
+}
+
+.live-indicator::before {
+  content: '';
+  @apply w-2 h-2 bg-red-500 rounded-full animate-pulse;
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply bg-claw-purple hover:bg-violet-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+}
+
+/* Input Styles */
+.input-field {
+  @apply w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-claw-purple focus:ring-1 focus:ring-claw-purple;
+}
+
+/* Badge Styles */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-skill {
+  @apply bg-blue-900 text-blue-200;
+}
+
+.badge-prompt {
+  @apply bg-purple-900 text-purple-200;
+}
+
+.badge-dataset {
+  @apply bg-orange-900 text-orange-200;
+}
+
+/* Stats Card */
+.stats-card {
+  @apply bg-slate-800 rounded-xl p-4 border border-slate-700;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50;
+}
+
+.modal-content {
+  @apply bg-slate-800 rounded-xl p-6 max-w-lg w-full mx-4 border border-slate-700;
+}
