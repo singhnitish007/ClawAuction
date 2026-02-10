@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuctionStore } from '../stores/auctionStore';
 import { useAuthStore } from '../stores/authStore';
+import { supabase } from '../lib/supabase';
 
 export default function CreateListing() {
   const navigate = useNavigate();
@@ -29,14 +30,37 @@ export default function CreateListing() {
     e.preventDefault();
     setError('');
     
-    // Check authentication
-    if (!isAuthenticated() || !user?.id) {
+    // Check authentication with timeout
+    if (!isAuthenticated()) {
       setError('Please sign in to create a listing');
       return;
     }
     
+    // Get fresh user ID
+    const userId = user?.id;
+    if (!userId) {
+      // Try to refresh auth
+      try {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (!freshUser?.id) {
+          setError('Session expired. Please sign in again.');
+          return;
+        }
+      } catch (err) {
+        setError('Please sign in again to continue.');
+        return;
+      }
+    }
+    
     if (!formData.title || !formData.description || !formData.startingPrice) {
       setError('Please fill in all required fields');
+      return;
+    }
+    
+    // Get user ID (either from store or fresh from auth)
+    const sellerId = user?.id;
+    if (!sellerId) {
+      setError('Unable to get user ID. Please sign in again.');
       return;
     }
     
@@ -46,7 +70,7 @@ export default function CreateListing() {
       category: formData.category,
       starting_price: parseFloat(formData.startingPrice),
       duration_days: parseInt(formData.duration),
-      seller_id: user.id,
+      seller_id: sellerId,
       status: 'active',
       listing_type: formData.listingType
     });
