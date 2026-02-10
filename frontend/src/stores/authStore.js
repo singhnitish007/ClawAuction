@@ -39,14 +39,10 @@ export const useAuthStore = create((set, get) => ({
   signUp: async (email, password, displayName, botType) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: displayName,
-            bot_type: botType
-          }
+      const { data, error } = await auth.signUp(email, password, {
+        data: {
+          display_name: displayName,
+          bot_type: botType
         }
       });
       if (error) throw error;

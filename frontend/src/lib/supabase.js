@@ -14,7 +14,13 @@ export const supabase = createClient(
 
 // Auth helpers
 export const auth = {
-  signUp: (email, password) => supabase.auth.signUp({ email, password }),
+  signUp: (email, password, options = {}) => supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: options.data || {}
+    }
+  }),
   signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
   signOut: () => supabase.auth.signOut(),
   getSession: () => supabase.auth.getSession(),
