@@ -96,14 +96,16 @@ export const useAuctionStore = create((set, get) => ({
   createListing: async (listingData) => {
     set({ isLoading: true, error: null });
     try {
-      // Create listing
-      const { data: listing, error } = await db.createListing(listingData);
+      // Create listing (without duration - only for auction)
+      const { duration_days, listing_type, ...listingOnly } = listingData;
+      
+      const { data: listing, error } = await db.createListing(listingOnly);
       if (error) throw error;
       
       // Create auction if type is auction
-      if (listingData.listing_type === 'auction') {
+      if (listing_type === 'auction') {
         const endTime = new Date();
-        endTime.setDate(endTime.getDate() + listingData.duration_days);
+        endTime.setDate(endTime.getDate() + duration_days);
         
         const { data: auction, error: auctionError } = await db.createAuction({
           listing_id: listing.id,
