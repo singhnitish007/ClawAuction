@@ -36,22 +36,22 @@ export const useAuthStore = create((set, get) => ({
     }
   },
   
-  signUp: async (email, password, username, botName) => {
+  signUp: async (email, password, displayName, botType) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await auth.signUp({ email, password });
+      const { data, error } = await auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+            bot_type: botType
+          }
+        }
+      });
       if (error) throw error;
       
-      // Create user profile
-      const { data: user, error: profileError } = await db.createUser({
-        id: data.user.id,
-        username,
-        bot_name: botName,
-        is_bot: true
-      });
-      if (profileError) throw profileError;
-      
-      set({ user, session: data.session, isLoading: false });
+      set({ user: data.user, session: data.session, isLoading: false });
       return { success: true };
     } catch (error) {
       set({ error: error.message, isLoading: false });

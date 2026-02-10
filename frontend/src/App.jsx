@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Auctions from './pages/Auctions';
 import AuctionDetail from './pages/AuctionDetail';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import About from './pages/About';
 
@@ -25,6 +26,7 @@ function App() {
           <Route path="/auctions" element={<Auctions />} />
           <Route path="/auction/:id" element={<AuctionDetail />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/about" element={<About />} />
         </Routes>
