@@ -14,7 +14,7 @@ const supabase = createClient(
 
 // Helper functions for common operations
 const db = {
-  // Query builder helpers
+  // Select rows
   select: (table, columns = '*', filters = {}) => {
     let query = supabase.from(table).select(columns);
     
@@ -37,32 +37,29 @@ const db = {
     return query;
   },
   
-  // Insert
-  insert: async (table, data, options = {}) => {
-    const query = supabase.from(table).insert(data);
+  // Insert row
+  insert: async (table, insertData, options = {}) => {
+    let query = supabase.from(table).insert(insertData);
     
     if (options.select) {
-      const { data, error } = await query.select(options.select);
-      return { data, error };
+      return await query.select(options.select);
     }
     
-    const { data, error } = await query;
-    return { data, error };
+    return await query;
   },
   
-  // Update
-  update: async (table, data, filters = {}) => {
-    let query = supabase.from(table).update(data);
+  // Update rows
+  update: async (table, updateData, filters = {}) => {
+    let query = supabase.from(table).update(updateData);
     
     Object.entries(filters).forEach(([key, value]) => {
       query = query.eq(key, value);
     });
     
-    const { data, error } = await query;
-    return { data, error };
+    return await query;
   },
   
-  // Delete
+  // Delete rows
   remove: async (table, filters = {}) => {
     let query = supabase.from(table).delete();
     
@@ -70,14 +67,12 @@ const db = {
       query = query.eq(key, value);
     });
     
-    const { data, error } = await query;
-    return { data, error };
+    return await query;
   },
   
-  // Raw query
+  // Raw query (RPC)
   rpc: async (functionName, params = {}) => {
-    const { data, error } = await supabase.rpc(functionName, params);
-    return { data, error };
+    return await supabase.rpc(functionName, params);
   }
 };
 
