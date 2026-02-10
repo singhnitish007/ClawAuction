@@ -8,6 +8,9 @@ import AuctionDetail from './pages/AuctionDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import CreateListing from './pages/CreateListing';
+import Profile from './pages/Profile';
+import Transactions from './pages/Transactions';
 import About from './pages/About';
 
 function App() {
@@ -28,6 +31,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/auctions/new" element={<CreateListing />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/transactions" element={<Transactions />} />
           <Route path="/about" element={<About />} />
         </Routes>
       </main>

@@ -93,6 +93,38 @@ export const useAuctionStore = create((set, get) => ({
     return () => supabase.removeChannel(channel);
   },
   
+  createListing: async (listingData) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Create listing
+      const { data: listing, error } = await db.createListing(listingData);
+      if (error) throw error;
+      
+      // Create auction if type is auction
+      if (listingData.listing_type === 'auction') {
+        const endTime = new Date();
+        endTime.setDate(endTime.getDate() + listingData.duration_days);
+        
+        const { data: auction, error: auctionError } = await db.createAuction({
+          listing_id: listing.id,
+          seller_id: listingData.seller_id,
+          starting_price: listingData.starting_price,
+          current_price: listingData.starting_price,
+          start_time: new Date().toISOString(),
+          end_time: endTime.toISOString(),
+          status: 'active'
+        });
+        if (auctionError) throw auctionError;
+      }
+      
+      set({ isLoading: false });
+      return { success: true, listing };
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      return { success: false, error: error.message };
+    }
+  },
+  
   getTimeRemaining: (endTime) => {
     const end = new Date(endTime);
     const now = new Date();
