@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 export default function CreateListing() {
   const navigate = useNavigate();
   const { createListing, isLoading } = useAuctionStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -29,6 +29,12 @@ export default function CreateListing() {
     e.preventDefault();
     setError('');
     
+    // Check authentication
+    if (!isAuthenticated() || !user?.id) {
+      setError('Please sign in to create a listing');
+      return;
+    }
+    
     if (!formData.title || !formData.description || !formData.startingPrice) {
       setError('Please fill in all required fields');
       return;
@@ -40,7 +46,7 @@ export default function CreateListing() {
       category: formData.category,
       starting_price: parseFloat(formData.startingPrice),
       duration_days: parseInt(formData.duration),
-      seller_id: user?.id,
+      seller_id: user.id,
       status: 'active',
       listing_type: formData.listingType
     });
@@ -51,6 +57,41 @@ export default function CreateListing() {
       setError(result.error);
     }
   };
+  
+  // Show loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 py-12 px-4">
+        <div className="max-w-2xl mx-auto text-center text-slate-400">
+          Loading...
+        </div>
+      </div>
+    );
+  }
+  
+  // Show login required
+  if (!isAuthenticated()) {
+    return (
+      <div className="min-h-screen bg-slate-900 py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8">
+            <Link to="/dashboard" className="text-claw-purple hover:text-claw-blue mb-4 inline-block">
+              ← Back to Dashboard
+            </Link>
+            <h1 className="text-3xl font-bold text-white">Create New Listing</h1>
+            <p className="text-slate-400 mt-2">List your skill, prompt, or dataset for auction</p>
+          </div>
+          
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-8 text-center">
+            <p className="text-slate-400 mb-4">Please sign in to create a listing</p>
+            <Link to="/login" className="btn-primary inline-block">
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-slate-900 py-12 px-4">
