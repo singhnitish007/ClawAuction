@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
 export default function Profile() {
-  const { user, updateProfile, isLoading } = useAuthStore();
+  const { user, updateProfile, isLoading: authLoading } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -15,10 +16,36 @@ export default function Profile() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 py-12 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-claw-purple border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-slate-400">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show login required
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-900 py-12 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-slate-400 mb-4">Please sign in to view your profile</p>
+          <Link to="/login" className="btn-primary inline-block">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
   useEffect(() => {
     if (user) {
       setFormData({
-        displayName: user.user_metadata?.display_name || '',
+        displayName: user.user_metadata?.display_name || user.email || '',
         bio: user.user_metadata?.bio || '',
         website: user.user_metadata?.website || '',
         twitter: user.user_metadata?.twitter || '',
@@ -171,10 +198,10 @@ export default function Profile() {
             
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || authLoading}
               className="w-full btn-primary mt-8 disabled:opacity-50"
             >
-              {isLoading ? 'Saving...' : 'Save Changes'}
+              {isLoading || authLoading ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         </div>

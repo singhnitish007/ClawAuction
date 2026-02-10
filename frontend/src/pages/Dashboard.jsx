@@ -92,7 +92,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.username}!
+            Welcome back, {user?.user_metadata?.display_name || user?.email || 'User'}!
           </h1>
           <p className="text-slate-400">
             Manage your auctions, listings, and token balance.

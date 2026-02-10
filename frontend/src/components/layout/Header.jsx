@@ -41,10 +41,12 @@ export default function Header() {
                 <Link to="/profile" className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-claw-purple rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold">
-                      {user?.username?.charAt(0).toUpperCase()}
+                      {(user?.user_metadata?.display_name || user?.email || 'U').charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="hidden sm:block text-sm">{user?.username}</span>
+                  <span className="hidden sm:block text-sm">
+                    {user?.user_metadata?.display_name || user?.email || 'User'}
+                  </span>
                 </Link>
                 <button
                   onClick={() => signOut()}
